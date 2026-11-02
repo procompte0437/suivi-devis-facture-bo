@@ -20,7 +20,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $settings = Setting::create([
-            'company_name' => 'Atelier Orée',
+            'company_name' => 'DOUKOU',
             'tagline' => 'Devis, factures et suivi de projets',
             'address' => 'Quartier Louis, face à la baie',
             'city' => 'Libreville',
@@ -32,7 +32,7 @@ class DatabaseSeeder extends Seeder
             'currency' => 'XAF',
             'quote_prefix' => 'DEV',
             'invoice_prefix' => 'FAC',
-            'payment_note' => "Virement BGFIBank Libreville\nRIB 40021 00001 12345678901 42\nIntitulé : Atelier Orée",
+            'payment_note' => "Virement BGFIBank Libreville\nRIB 40021 00001 12345678901 42\nIntitulé : DOUKOU",
             'footer' => 'Devis valable jusqu’à la date indiquée. Acompte de 40 % à l’ouverture du projet.',
         ]);
 
@@ -125,7 +125,7 @@ class DatabaseSeeder extends Seeder
             ['Production', 4, 'j', 210000],
         ]);
 
-        ActivityLogger::log($aurore, 'maison.ouverte', null, 'L’atelier Orée ouvre son portail de pilotage.', now()->subMonths(5));
+        ActivityLogger::log($aurore, 'maison.ouverte', null, 'DOUKOU ouvre son portail de pilotage.', now()->subMonths(5));
         ActivityLogger::log($lea, 'facture.reglement', $olambaInvoice, 'Acompte encaissé pour '.$olambaInvoice->number.'.', now()->startOfMonth()->addDays(9));
         ActivityLogger::log($marc, 'devis.relance', null, 'Relance préparée pour la clinique Les Flamboyants.', now()->subDays(1));
         \App\Support\CompanyProvisioner::attachExisting();

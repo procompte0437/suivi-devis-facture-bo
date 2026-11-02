@@ -97,7 +97,7 @@ return new class extends Migration
         if (Schema::hasTable('clients') && DB::table('clients')->exists() && DB::table('companies')->doesntExist()) {
             $settings = DB::table('settings')->orderBy('id')->first();
             $companyId = DB::table('companies')->insertGetId([
-                'name' => $settings->company_name ?? 'Atelier Orée',
+                'name' => $settings->company_name ?? 'DOUKOU',
                 'tagline' => $settings->tagline ?? null,
                 'address' => $settings->address ?? null,
                 'city' => $settings->city ?? null,

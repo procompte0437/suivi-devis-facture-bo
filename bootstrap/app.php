@@ -17,6 +17,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin' => \App\Http\Middleware\EnsureAdmin::class,
             'active' => \App\Http\Middleware\EnsureActive::class,
             'company' => \App\Http\Middleware\ResolveCompany::class,
+            'staff' => \App\Http\Middleware\EnsureStaff::class,
+            'client' => \App\Http\Middleware\EnsureClient::class,
+            'can.do' => \App\Http\Middleware\EnsureAbility::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

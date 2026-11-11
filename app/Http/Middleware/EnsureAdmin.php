@@ -10,7 +10,7 @@ class EnsureAdmin
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if ($request->user()?->role !== 'admin') {
+        if (! \App\Support\Access::isManager($request->user())) {
             return response()->json(['message' => 'Cette action est réservée à l’administration.'], 403);
         }
 

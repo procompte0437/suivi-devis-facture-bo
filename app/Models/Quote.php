@@ -30,7 +30,7 @@ class Quote extends Model
         ];
     }
 
-    public function getDisplayStatusAttribute(): string
+    public function getDisplayStatusAttribute(): ?string
     {
         if ($this->status === 'envoye' && $this->valid_until && $this->valid_until->copy()->endOfDay()->isPast()) {
             return 'expire';
@@ -52,6 +52,11 @@ class Quote extends Model
     public function author(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function decider(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'decided_by');
     }
 
     public function lines(): HasMany

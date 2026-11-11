@@ -53,6 +53,11 @@ class Project extends Model
         return $this->hasMany(ProjectTask::class)->orderBy('position');
     }
 
+    public function updates(): HasMany
+    {
+        return $this->hasMany(ProjectUpdate::class)->latest();
+    }
+
     public function budgetLines(): HasMany
     {
         return $this->hasMany(BudgetLine::class)->orderBy('position');

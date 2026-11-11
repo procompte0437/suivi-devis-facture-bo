@@ -93,7 +93,8 @@ class AuthController extends Controller
         $current = $companies->firstWhere('id', CompanyContext::id()) ?? $companies->first();
 
         $body = [
-            'user' => $user,
+            'user' => $user->load('client:id,company,contact_name'),
+            'abilities' => \App\Support\Access::abilities($user),
             'settings' => \App\Models\Setting::current(),
             'companies' => $companies,
             'company' => $current,

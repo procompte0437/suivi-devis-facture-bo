@@ -65,6 +65,7 @@ class ProjectController extends Controller
             'milestones',
             'tasks.staff',
             'budgetLines',
+            'updates' => fn ($query) => $query->with('author:id,name')->limit(30),
             'quotes' => fn ($query) => $query->latest('issue_date'),
             'invoices' => fn ($query) => $query->latest('issue_date'),
         ]));
@@ -94,6 +95,44 @@ class ProjectController extends Controller
         ActivityLogger::log($request->user(), 'projet.maj', $project, 'Projet '.$project->name.' mis à jour.');
 
         return response()->json($project->fresh()->load('client', 'manager:id,name', 'milestones', 'tasks.staff', 'budgetLines'));
+    }
+
+    /** UC11 : mise à jour de l'avancement, avec un commentaire de suivi. */
+    public function progress(Request $request, Project $project)
+    {
+        $data = $this->validateData($request, [
+            'progress' => ['required', 'integer', 'min:0', 'max:100'],
+            'status' => ['required', 'in:cadrage,en_cours,pause,livre,clos'],
+            'comment' => ['nullable', 'string', 'max:2000'],
+            'done_milestones' => ['nullable', 'array'],
+            'done_milestones.*' => ['integer'],
+        ]);
+
+        if (in_array($data['status'], ['livre', 'clos'], true) && $data['progress'] < 100) {
+            return response()->json(['message' => 'Un projet livré ou clos doit être à 100 %.'], 422);
+        }
+
+        DB::transaction(function () use ($data, $project, $request) {
+            $project->update(['progress' => $data['progress'], 'status' => $data['status']]);
+
+            if (array_key_exists('done_milestones', $data)) {
+                $done = $data['done_milestones'] ?? [];
+                foreach ($project->milestones as $milestone) {
+                    $milestone->update(['done' => in_array($milestone->id, $done, true)]);
+                }
+            }
+
+            $project->updates()->create([
+                'user_id' => $request->user()->id,
+                'progress' => $data['progress'],
+                'status' => $data['status'],
+                'comment' => $data['comment'] ?? null,
+            ]);
+        });
+
+        ActivityLogger::log($request->user(), 'projet.avancement', $project, 'Projet '.$project->name.' : avancement à '.$data['progress'].' %.');
+
+        return $this->show($project->fresh());
     }
 
     public function destroy(Request $request, Project $project)

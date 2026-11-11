@@ -34,7 +34,7 @@ class Invoice extends Model
         return round(max(0, (float) $this->total - (float) $this->amount_paid), 2);
     }
 
-    public function getDisplayStatusAttribute(): string
+    public function getDisplayStatusAttribute(): ?string
     {
         if (
             in_array($this->status, ['emise', 'partielle'], true)

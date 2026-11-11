@@ -39,6 +39,7 @@ class DatabaseSeeder extends Seeder
         $aurore = $this->user('Aurore Blanc', 'aurore.blanc@oree.fr', 'admin', 'Directrice', '+241 06 22 18 40');
         $marc = $this->user('Marc Essono', 'marc.essono@oree.fr', 'commercial', 'Chargé de projets', '+241 06 44 90 12');
         $lea = $this->user('Léa Nguema', 'lea.nguema@oree.fr', 'comptable', 'Comptable', '+241 06 11 73 08');
+        $this->user('Yannick Ondo', 'yannick.ondo@oree.fr', 'chef_projet', 'Chef de projet', '+241 06 30 52 77');
         $this->user('Paul Moussavou', 'paul.moussavou@oree.fr', 'commercial', 'Ancien collaborateur', null, false);
 
         $clients = [
@@ -51,6 +52,10 @@ class DatabaseSeeder extends Seeder
             'nka' => $this->client('CLI-007', 'Maison Nka', 'Chloé Moussavou', 'chloe@maison-nka.ga', 'Franceville', 'veille'),
             'ngounie' => $this->client('CLI-008', 'BTP Ngounié', 'Serge Boukinda', 's.boukinda@btp-ngounie.ga', 'Mouila', 'actif'),
         ];
+
+        // Compte client de démonstration : la clinique a un devis envoyé en attente de réponse.
+        $this->user('Hervé Mba', 'direction@flamboyants.ga', 'client', 'Directeur, Clinique Les Flamboyants', null)
+            ->update(['client_id' => $clients['clinique']->id]);
 
         $projects = [
             'olamba' => $this->project('PRJ-001', $clients['olamba'], $aurore, 'Identité et suites Olamba', 'en_cours', 62, 7800000, [

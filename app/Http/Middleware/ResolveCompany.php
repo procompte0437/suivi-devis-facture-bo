@@ -23,6 +23,12 @@ class ResolveCompany
 
         $company ??= $user?->companies()->orderBy('companies.id')->first();
 
+        // Un compte client suit toujours l'entreprise de sa fiche client.
+        if ($user?->role === 'client' && $user->client_id) {
+            $companyId = \App\Models\Client::withoutGlobalScope('company')->whereKey($user->client_id)->value('company_id');
+            $company = $companyId ? Company::find($companyId) : null;
+        }
+
         if ($company) {
             CompanyContext::set($company);
         } else {

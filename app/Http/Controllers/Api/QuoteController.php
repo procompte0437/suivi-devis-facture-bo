@@ -41,6 +41,7 @@ class QuoteController extends Controller
             'lines',
             'invoice:id,quote_id,number,status,total',
             'author:id,name',
+            'decider:id,name,role',
         ]));
     }
 
@@ -79,8 +80,10 @@ class QuoteController extends Controller
             return response()->json(['message' => 'Ce devis est déjà facturé.'], 422);
         }
 
+        $decided = in_array($data['status'], ['accepte', 'refuse'], true);
         $quote->status = $data['status'];
-        $quote->decided_at = in_array($data['status'], ['accepte', 'refuse'], true) ? now() : null;
+        $quote->decided_at = $decided ? now() : null;
+        $quote->decided_by = $decided ? $request->user()->id : null;
         $quote->save();
 
         if ($data['status'] !== 'refuse') {
@@ -115,6 +118,7 @@ class QuoteController extends Controller
             if ($quote->status !== 'accepte') {
                 $quote->status = 'accepte';
                 $quote->decided_at = now();
+                $quote->decided_by = $request->user()->id;
                 $quote->save();
             }
 
@@ -229,9 +233,12 @@ class QuoteController extends Controller
             ];
 
             if (in_array($payload['status'], ['accepte', 'refuse'], true)) {
-                $payload['decided_at'] = $quote?->decided_at ?? now();
+                $unchanged = $quote && $quote->status === $payload['status'];
+                $payload['decided_at'] = $unchanged ? ($quote->decided_at ?? now()) : now();
+                $payload['decided_by'] = $unchanged ? ($quote->decided_by ?? $request->user()->id) : $request->user()->id;
             } else {
                 $payload['decided_at'] = null;
+                $payload['decided_by'] = null;
             }
 
             if ($quote) {
@@ -255,6 +262,7 @@ class QuoteController extends Controller
                 'lines',
                 'invoice:id,quote_id,number,status,total',
                 'author:id,name',
+                'decider:id,name,role',
             ]);
         });
     }

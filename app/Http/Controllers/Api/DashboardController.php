@@ -94,7 +94,7 @@ class DashboardController extends Controller
                 ],
                 [
                     'key' => 'projects',
-                    'label' => 'Projets vivants',
+                    'label' => 'Projets en cours',
                     'value' => $activeProjects->count(),
                     'hint' => 'Avancement moyen '.$averageProgress.' %',
                     'percent' => $averageProgress,

@@ -20,7 +20,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $settings = Setting::create([
-            'company_name' => 'DOUKOU',
+            'company_name' => 'Atelier Orée',
             'tagline' => 'Devis, factures et suivi de projets',
             'address' => 'Quartier Louis, face à la baie',
             'city' => 'Libreville',

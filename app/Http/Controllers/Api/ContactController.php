@@ -29,6 +29,22 @@ class ContactController extends Controller
         return response()->json(['message' => 'Message envoyé. Nous vous répondrons par e-mail.'], 201);
     }
 
+    /** Inscription à la lettre d'information (pied de page du site). */
+    public function subscribe(Request $request)
+    {
+        $data = $this->validateData($request, [
+            'email' => ['required', 'email', 'max:180'],
+            'website' => ['nullable', 'max:0'],
+        ]);
+
+        \Illuminate\Support\Facades\DB::table('newsletter_subscribers')->updateOrInsert(
+            ['email' => mb_strtolower($data['email'])],
+            ['updated_at' => now(), 'created_at' => now()],
+        );
+
+        return response()->json(['message' => 'Merci, votre inscription est enregistrée.'], 201);
+    }
+
     /** Lecture côté administrateur de la plateforme. */
     public function index(Request $request)
     {

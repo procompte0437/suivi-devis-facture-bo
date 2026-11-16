@@ -35,4 +35,20 @@ return [
         ],
     ],
 
+    // Inscription / connexion par Google et GitHub (Laravel Socialite).
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'redirect' => rtrim(env('OAUTH_CALLBACK_BASE', 'http://127.0.0.1:8010'), '/').'/api/auth/google/callback',
+    ],
+
+    'github' => [
+        'client_id' => env('GITHUB_CLIENT_ID'),
+        'client_secret' => env('GITHUB_CLIENT_SECRET'),
+        'redirect' => rtrim(env('OAUTH_CALLBACK_BASE', 'http://127.0.0.1:8010'), '/').'/api/auth/github/callback',
+    ],
+
+    // Adresse du site React, où l'on revient après Google / GitHub.
+    'frontend_url' => env('FRONTEND_URL', 'http://127.0.0.1:5173'),
+
 ];

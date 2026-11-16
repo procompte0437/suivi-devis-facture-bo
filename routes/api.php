@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\CompanyController;
 use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DocumentPdfController;
+use App\Http\Controllers\Api\GuideController;
 use App\Http\Controllers\Api\InvoiceController;
 use App\Http\Controllers\Api\PlatformCityController;
 use App\Http\Controllers\Api\PortalController;
@@ -18,6 +19,8 @@ use App\Http\Controllers\Api\QuoteController;
 use App\Http\Controllers\Api\ReferentielController;
 use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\SettingController;
+use App\Http\Controllers\Api\SiteImageController;
+use App\Http\Controllers\Api\SocialAuthController;
 use App\Http\Controllers\Api\StaffController;
 use Illuminate\Support\Facades\Route;
 
@@ -25,6 +28,12 @@ Route::get('/stats', [PublicController::class, 'stats']);
 Route::get('/cities', [PlatformCityController::class, 'index']);
 Route::post('/chat', [PublicController::class, 'chat'])->middleware('throttle:30,1');
 Route::post('/contact', [ContactController::class, 'store'])->middleware('throttle:5,1');
+Route::get('/auth/providers', [SocialAuthController::class, 'providers']);
+Route::get('/auth/{provider}/redirect', [SocialAuthController::class, 'redirect'])->middleware('throttle:20,1');
+Route::get('/auth/{provider}/callback', [SocialAuthController::class, 'callback'])->middleware('throttle:20,1');
+Route::post('/auth/social/exchange', [SocialAuthController::class, 'exchange'])->middleware('throttle:20,1');
+Route::get('/site-images', [SiteImageController::class, 'index']);
+Route::post('/newsletter', [ContactController::class, 'subscribe'])->middleware('throttle:5,1');
 Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:8,1');
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:8,1');
 
@@ -46,6 +55,7 @@ Route::middleware(['auth:sanctum', 'active', 'company'])->group(function () {
     // Équipe interne : lecture pour tous, écriture selon le rôle.
     Route::middleware('staff')->group(function () {
         Route::get('/dashboard', DashboardController::class);
+        Route::get('/aide/guide', [GuideController::class, 'pdf']);
         Route::get('/search', SearchController::class);
         Route::get('/settings', [SettingController::class, 'show']);
         Route::get('/team', function () {
@@ -137,6 +147,10 @@ Route::middleware(['auth:sanctum', 'active', 'company'])->group(function () {
             Route::get('/audit', [AuditController::class, 'index']);
             Route::get('/contact-messages', [ContactController::class, 'index']);
             Route::post('/contact-messages/{message}/handled', [ContactController::class, 'handle']);
+            Route::get('/site-images', [SiteImageController::class, 'admin']);
+            Route::post('/site-images/{slot}', [SiteImageController::class, 'upload']);
+            Route::put('/site-images/{slot}', [SiteImageController::class, 'update']);
+            Route::delete('/site-images/{slot}', [SiteImageController::class, 'reset']);
         });
     });
 });

@@ -36,6 +36,7 @@ class AppServiceProvider extends ServiceProvider
             'staff' => StaffMember::class,
             'city' => PlatformCity::class,
             'referentiel' => ReferentielItem::class,
+            'site_image' => \App\Models\SiteImage::class,
         ]);
     }
 }

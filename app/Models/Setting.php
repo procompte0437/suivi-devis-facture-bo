@@ -18,7 +18,7 @@ class Setting extends Model
     public static function current(): self
     {
         return static::query()->firstOrCreate(['id' => 1], [
-            'company_name' => 'DOUKOU',
+            'company_name' => 'Atelier Orée',
             'tagline' => 'Devis, factures et projets',
             'country' => 'Gabon',
             'tax_rate' => 18,

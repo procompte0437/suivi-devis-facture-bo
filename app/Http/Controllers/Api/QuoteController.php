@@ -100,6 +100,7 @@ class QuoteController extends Controller
         $data = $this->validateData($request, [
             'create_project' => ['nullable', 'boolean'],
             'due_date' => ['nullable', 'date'],
+            'template' => ['nullable', 'in:'.implode(',', Templates::INVOICES)],
         ]);
 
         if ($quote->invoice()->exists()) {
@@ -163,7 +164,7 @@ class QuoteController extends Controller
                 'tax_amount' => $quote->tax_amount,
                 'total' => $quote->total,
                 'notes' => $quote->notes,
-                'template' => 'cedre',
+                'template' => $data['template'] ?? 'cedre',
                 'company_id' => $quote->company_id,
             ]);
 

@@ -21,6 +21,14 @@ return Application::configure(basePath: dirname(__DIR__))
             'client' => \App\Http\Middleware\EnsureClient::class,
             'can.do' => \App\Http\Middleware\EnsureAbility::class,
         ]);
+
+        // L'entreprise courante doit être connue AVANT la résolution des {projet}, {devis}…
+        // de l'adresse : sinon le filtre par entreprise n'est pas encore actif et un compte
+        // pourrait ouvrir la pièce d'une autre entreprise en changeant l'identifiant.
+        $middleware->prependToPriorityList(
+            before: \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            prepend: \App\Http\Middleware\ResolveCompany::class,
+        );
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

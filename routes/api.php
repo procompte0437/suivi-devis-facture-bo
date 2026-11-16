@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AdminUserController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ClientController;
 use App\Http\Controllers\Api\CompanyController;
+use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\InvoiceController;
 use App\Http\Controllers\Api\PortalController;
@@ -18,6 +19,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/stats', [PublicController::class, 'stats']);
 Route::post('/chat', [PublicController::class, 'chat'])->middleware('throttle:30,1');
+Route::post('/contact', [ContactController::class, 'store'])->middleware('throttle:5,1');
 Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:8,1');
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:8,1');
 
@@ -104,6 +106,8 @@ Route::middleware(['auth:sanctum', 'active', 'company'])->group(function () {
             Route::delete('/users/{user}', [AdminUserController::class, 'destroy']);
             Route::put('/settings', [SettingController::class, 'update']);
             Route::get('/activity', [ActivityController::class, 'index']);
+            Route::get('/contact-messages', [ContactController::class, 'index']);
+            Route::post('/contact-messages/{message}/handled', [ContactController::class, 'handle']);
         });
     });
 });

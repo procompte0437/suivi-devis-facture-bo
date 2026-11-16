@@ -27,5 +27,6 @@ class ActivityLogger
         }
 
         $activity->save();
+        AuditLogger::record($user, $action, $description, $subject, $at);
     }
 }

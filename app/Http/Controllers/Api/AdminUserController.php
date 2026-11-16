@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Client;
 use App\Models\User;
+use App\Support\Access;
 use App\Support\ActivityLogger;
 use App\Support\CompanyContext;
 use Illuminate\Http\Request;
@@ -12,8 +13,9 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Gestion des comptes (UC02). La liste se limite aux comptes de l'entreprise active,
- * pour qu'une entreprise ne voie pas les utilisateurs d'une autre.
+ * Gestion des comptes (UC02).
+ * L'administrateur de la plateforme voit tous les comptes, y compris ceux sans entreprise.
+ * Un dirigeant ne voit que les comptes de son entreprise active.
  */
 class AdminUserController extends Controller
 {
@@ -22,7 +24,7 @@ class AdminUserController extends Controller
     public function index()
     {
         return response()->json(
-            $this->members()->with('client:id,company')->orderBy('name')->get()
+            $this->members()->with(['client:id,company', 'companies:id,name'])->orderBy('name')->get()
         );
     }
 
@@ -115,8 +117,8 @@ class AdminUserController extends Controller
 
         $name = $user->name;
 
-        // Un compte rattaché à d'autres entreprises est seulement détaché de celle-ci.
-        if ($user->companies()->count() > 1 && CompanyContext::id()) {
+        // L'administrateur retire le compte partout. Un dirigeant ne le détache que de son entreprise.
+        if (! Access::isPlatformAdmin($request->user()) && $user->companies()->count() > 1 && CompanyContext::id()) {
             $user->companies()->detach(CompanyContext::id());
         } else {
             $user->tokens()->delete();
@@ -130,6 +132,10 @@ class AdminUserController extends Controller
 
     private function members()
     {
+        if (Access::isPlatformAdmin(auth()->user())) {
+            return User::query();
+        }
+
         $companyId = CompanyContext::id();
 
         return User::query()->when(

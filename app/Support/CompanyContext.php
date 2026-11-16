@@ -12,6 +12,18 @@ class CompanyContext
         app()->instance('companyScope', $company ? 'bound' : 'empty');
     }
 
+    /** Vue de supervision : aucune entreprise n'est filtrée. */
+    public static function setAll(): void
+    {
+        app()->instance('currentCompany', null);
+        app()->instance('companyScope', 'all');
+    }
+
+    public static function isAll(): bool
+    {
+        return app()->bound('companyScope') && app('companyScope') === 'all';
+    }
+
     public static function id(): ?int
     {
         $company = app()->bound('currentCompany') ? app('currentCompany') : null;

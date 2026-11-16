@@ -1,23 +1,28 @@
 <?php
 
 use App\Http\Controllers\Api\ActivityController;
+use App\Http\Controllers\Api\AuditController;
 use App\Http\Controllers\Api\AdminUserController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ClientController;
 use App\Http\Controllers\Api\CompanyController;
 use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\DocumentPdfController;
 use App\Http\Controllers\Api\InvoiceController;
+use App\Http\Controllers\Api\PlatformCityController;
 use App\Http\Controllers\Api\PortalController;
 use App\Http\Controllers\Api\ProjectController;
 use App\Http\Controllers\Api\PublicController;
 use App\Http\Controllers\Api\QuoteController;
+use App\Http\Controllers\Api\ReferentielController;
 use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\StaffController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/stats', [PublicController::class, 'stats']);
+Route::get('/cities', [PlatformCityController::class, 'index']);
 Route::post('/chat', [PublicController::class, 'chat'])->middleware('throttle:30,1');
 Route::post('/contact', [ContactController::class, 'store'])->middleware('throttle:5,1');
 Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:8,1');
@@ -30,8 +35,10 @@ Route::middleware(['auth:sanctum', 'active', 'company'])->group(function () {
     // Espace client : uniquement ses propres pièces et projets.
     Route::middleware('client')->prefix('portal')->group(function () {
         Route::get('/', [PortalController::class, 'overview']);
+        Route::get('/quotes/{quote}/pdf', [DocumentPdfController::class, 'devis']);
         Route::get('/quotes/{quote}', [PortalController::class, 'quote']);
         Route::post('/quotes/{quote}/decision', [PortalController::class, 'decide']);
+        Route::get('/invoices/{invoice}/pdf', [DocumentPdfController::class, 'facture']);
         Route::get('/invoices/{invoice}', [PortalController::class, 'invoice']);
         Route::get('/projects/{project}', [PortalController::class, 'project']);
     });
@@ -41,26 +48,47 @@ Route::middleware(['auth:sanctum', 'active', 'company'])->group(function () {
         Route::get('/dashboard', DashboardController::class);
         Route::get('/search', SearchController::class);
         Route::get('/settings', [SettingController::class, 'show']);
-        Route::get('/team', fn () => \App\Models\User::query()
-            ->where('is_active', true)
-            ->where('role', '!=', 'client')
-            ->orderBy('name')
-            ->get(['id', 'name', 'job_title', 'role']));
+        Route::get('/team', function () {
+            $query = \App\Models\User::query()
+                ->where('is_active', true)
+                ->where('role', '!=', 'client')
+                ->orderBy('name');
+
+            if (! \App\Support\CompanyContext::isAll()) {
+                $companyId = \App\Support\CompanyContext::id();
+                $query->whereHas('companies', fn ($company) => $company->where('companies.id', $companyId ?: 0));
+            }
+
+            return $query->get(['id', 'name', 'job_title', 'role']);
+        });
 
         Route::get('/companies', [CompanyController::class, 'index']);
+        Route::post('/cities', [PlatformCityController::class, 'store']);
+        Route::delete('/cities/{city}', [PlatformCityController::class, 'destroy']);
+        Route::get('/referentiel', [ReferentielController::class, 'index']);
         Route::get('/staff', [StaffController::class, 'index']);
         Route::get('/clients', [ClientController::class, 'index']);
         Route::get('/clients/{client}', [ClientController::class, 'show']);
         Route::get('/projects', [ProjectController::class, 'index']);
         Route::get('/projects/{project}', [ProjectController::class, 'show']);
         Route::get('/quotes', [QuoteController::class, 'index']);
+        Route::get('/quotes/{quote}/pdf', [DocumentPdfController::class, 'devis']);
         Route::get('/quotes/{quote}', [QuoteController::class, 'show']);
         Route::get('/invoices', [InvoiceController::class, 'index']);
+        Route::get('/invoices/{invoice}/pdf', [DocumentPdfController::class, 'facture']);
         Route::get('/invoices/{invoice}', [InvoiceController::class, 'show']);
+
+        Route::middleware('can.do:referentiel')->group(function () {
+            Route::post('/referentiel', [ReferentielController::class, 'store']);
+            Route::put('/referentiel/{item}', [ReferentielController::class, 'update']);
+            Route::delete('/referentiel/{item}', [ReferentielController::class, 'destroy']);
+        });
 
         Route::middleware('can.do:companies')->group(function () {
             Route::post('/companies', [CompanyController::class, 'store']);
             Route::put('/companies/{company}', [CompanyController::class, 'update']);
+            Route::post('/companies/{company}/logo', [CompanyController::class, 'logo']);
+            Route::delete('/companies/{company}/logo', [CompanyController::class, 'clearLogo']);
             Route::delete('/companies/{company}', [CompanyController::class, 'destroy']);
         });
 
@@ -106,6 +134,7 @@ Route::middleware(['auth:sanctum', 'active', 'company'])->group(function () {
             Route::delete('/users/{user}', [AdminUserController::class, 'destroy']);
             Route::put('/settings', [SettingController::class, 'update']);
             Route::get('/activity', [ActivityController::class, 'index']);
+            Route::get('/audit', [AuditController::class, 'index']);
             Route::get('/contact-messages', [ContactController::class, 'index']);
             Route::post('/contact-messages/{message}/handled', [ContactController::class, 'handle']);
         });

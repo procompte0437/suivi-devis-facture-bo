@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\Company;
+use App\Support\Access;
 use App\Support\CompanyContext;
 use Closure;
 use Illuminate\Http\Request;
@@ -13,11 +14,32 @@ class ResolveCompany
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
-        $companies = $user?->companies() ?? Company::query()->whereRaw('1 = 0');
         $requested = $request->header('X-Company-Id');
+
+        // L'administrateur de la plateforme peut tout voir, ou ouvrir n'importe quelle entreprise.
+        if ($user && Access::isPlatformAdmin($user) && $user->role !== 'client') {
+            if (! $requested || $requested === 'all') {
+                CompanyContext::setAll();
+                $request->attributes->set('company', null);
+
+                return $next($request);
+            }
+
+            $company = Company::query()->find($requested);
+            if ($company) {
+                CompanyContext::set($company);
+            } else {
+                CompanyContext::setAll();
+            }
+            $request->attributes->set('company', $company);
+
+            return $next($request);
+        }
+
+        $companies = $user?->companies() ?? Company::query()->whereRaw('1 = 0');
         $company = null;
 
-        if ($requested) {
+        if ($requested && $requested !== 'all') {
             $company = (clone $companies)->where('companies.id', $requested)->first();
         }
 

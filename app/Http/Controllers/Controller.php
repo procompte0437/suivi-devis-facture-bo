@@ -6,9 +6,9 @@ use Illuminate\Http\Request;
 
 abstract class Controller
 {
-    protected function validateData(Request $request, array $rules): array
+    protected function validateData(Request $request, array $rules, array $messages = []): array
     {
-        return $request->validate($rules, [
+        return $request->validate($rules, array_merge([
             'required' => 'Ce champ est requis.',
             'email' => 'Adresse e-mail invalide.',
             'unique' => 'Cette valeur est déjà utilisée.',
@@ -34,6 +34,6 @@ abstract class Controller
             'date' => 'Date invalide.',
             'boolean' => 'Valeur invalide.',
             'array' => 'Format invalide.',
-        ]);
+        ], $messages));
     }
 }

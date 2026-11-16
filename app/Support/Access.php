@@ -21,11 +21,18 @@ class Access
         'projects' => ['chef_projet'],
         'staff' => ['chef_projet'],
         'companies' => [],
+        'referentiel' => ['commercial'],
     ];
 
     public static function isManager(?User $user): bool
     {
         return in_array($user?->role, ['admin', 'dirigeant'], true);
+    }
+
+    /** Administrateur de la plateforme : voit tous les comptes et toutes les entreprises. */
+    public static function isPlatformAdmin(?User $user): bool
+    {
+        return $user?->role === 'admin';
     }
 
     public static function isClient(?User $user): bool

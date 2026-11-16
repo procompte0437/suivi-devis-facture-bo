@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Client;
 use App\Models\Invoice;
+use App\Models\ReferentielItem;
 use App\Support\ActivityLogger;
 use App\Support\DocumentNumbers;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class ClientController extends Controller
 {
@@ -82,8 +84,10 @@ class ClientController extends Controller
 
     private function payload(Request $request): array
     {
-        return $this->validateData($request, [
-            'company' => ['required', 'string', 'max:160'],
+        $data = $this->validateData($request, [
+            'kind' => ['required', 'in:individuel,entreprise'],
+            'societe_id' => ['nullable', 'integer'],
+            'company' => ['nullable', 'string', 'max:160'],
             'contact_name' => ['required', 'string', 'max:160'],
             'email' => ['nullable', 'email', 'max:160'],
             'phone' => ['nullable', 'string', 'max:40'],
@@ -92,7 +96,41 @@ class ClientController extends Controller
             'country' => ['nullable', 'string', 'max:80'],
             'tax_id' => ['nullable', 'string', 'max:80'],
             'notes' => ['nullable', 'string', 'max:2000'],
-            'status' => ['required', 'in:prospect,actif,veille'],
+            'status' => ['required', 'string', 'max:40'],
         ]);
+
+        if ($data['kind'] === 'entreprise') {
+            $societe = ReferentielItem::query()->where('kind', 'societe')->whereKey($data['societe_id'] ?? 0)->first();
+            if (! $societe) {
+                throw ValidationException::withMessages([
+                    'societe_id' => 'Choisissez une société configurée dans le référentiel.',
+                ]);
+            }
+            $data['company'] = $societe->label;
+            $data['societe_id'] = $societe->id;
+        } else {
+            $data['company'] = $data['contact_name'];
+            $data['societe_id'] = null;
+        }
+
+        $this->assertListed('statut', 'code', $data['status'], 'status', 'Choisissez un statut du référentiel.');
+        if (! empty($data['city'])) {
+            $this->assertListed('ville', 'label', $data['city'], 'city', 'Choisissez une ville du référentiel.');
+        }
+        if (! empty($data['country'])) {
+            $this->assertListed('pays', 'label', $data['country'], 'country', 'Choisissez un pays du référentiel.');
+        }
+
+        return $data;
+    }
+
+    private function assertListed(string $kind, string $column, string $value, string $field, string $message): void
+    {
+        $values = ReferentielItem::query()->where('kind', $kind)->pluck($column)->filter()->values();
+        if ($values->isEmpty() || $values->contains($value)) {
+            return;
+        }
+
+        throw ValidationException::withMessages([$field => $message]);
     }
 }

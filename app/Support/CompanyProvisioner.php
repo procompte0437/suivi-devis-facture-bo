@@ -42,6 +42,8 @@ class CompanyProvisioner
             ]);
         }
 
+        ReferentielCatalog::seed($company->id);
+
         return $company;
     }
 }

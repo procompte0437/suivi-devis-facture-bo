@@ -5,9 +5,12 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Models\User;
+use App\Support\Access;
+use App\Support\AuditLogger;
 use App\Support\CompanyContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -20,8 +23,7 @@ class AuthController extends Controller
             'email' => ['required', 'email', 'max:180', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'phone' => ['nullable', 'string', 'max:40'],
-            'company_name' => ['required_if:account_type,entreprise', 'nullable', 'string', 'max:160'],
-            'city' => ['nullable', 'string', 'max:80'],
+            'city' => ['required_if:account_type,entreprise', 'nullable', 'string', 'max:80', Rule::exists('platform_cities', 'label')],
         ]);
 
         $user = User::create([
@@ -37,19 +39,21 @@ class AuthController extends Controller
 
         if ($data['account_type'] === 'entreprise') {
             $company = Company::create([
-                'name' => $data['company_name'],
+                'name' => $data['name'],
                 'city' => $data['city'] ?? null,
                 'country' => 'Gabon',
                 'email' => $user->email,
                 'phone' => $user->phone,
             ]);
             $company->users()->attach($user->id, ['role' => 'owner']);
+            \App\Support\ReferentielCatalog::seed($company->id);
             CompanyContext::set($company);
         } else {
             CompanyContext::set(null);
         }
 
         $token = $user->createToken('atelier')->plainTextToken;
+        AuditLogger::record($user, 'auth.inscription', 'Ouverture du compte de '.$user->name.' ('.$user->email.').', $user);
 
         return response()->json($this->payload($user, $token), 201);
     }
@@ -64,6 +68,7 @@ class AuthController extends Controller
         $user = User::query()->where('email', mb_strtolower($data['email']))->first();
 
         if (! $user || ! $user->is_active || ! Hash::check($data['password'], $user->password)) {
+            AuditLogger::record($user, 'auth.echec', 'Connexion refusée pour '.$data['email'].'.');
             throw ValidationException::withMessages([
                 'email' => 'Identifiants invalides ou compte inactif.',
             ]);
@@ -71,6 +76,7 @@ class AuthController extends Controller
 
         $user->tokens()->where('name', 'atelier')->delete();
         $token = $user->createToken('atelier')->plainTextToken;
+        AuditLogger::record($user, 'auth.entree', $user->name.' s’est connecté.', $user);
 
         return response()->json($this->payload($user, $token));
     }
@@ -82,22 +88,41 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
-        $request->user()?->currentAccessToken()?->delete();
+        $user = $request->user();
+        if ($user) {
+            AuditLogger::record($user, 'auth.sortie', $user->name.' s’est déconnecté.', $user);
+        }
+        $user?->currentAccessToken()?->delete();
 
         return response()->json(['message' => 'Session fermée.']);
     }
 
     private function payload(User $user, ?string $token = null): array
     {
-        $companies = $user->companies()->orderBy('name')->get();
-        $current = $companies->firstWhere('id', CompanyContext::id()) ?? $companies->first();
+        $platform = Access::isPlatformAdmin($user);
+        $companies = $platform
+            ? Company::query()
+                ->withCount([
+                    'users',
+                    'projects' => fn ($query) => $query->withoutGlobalScope('company'),
+                ])
+                ->orderBy('name')
+                ->get()
+            : $user->companies()->orderBy('name')->get();
+        $current = CompanyContext::isAll()
+            ? null
+            : ($companies->firstWhere('id', CompanyContext::id()) ?? ($platform ? null : $companies->first()));
 
         $body = [
             'user' => $user->load('client:id,company,contact_name'),
-            'abilities' => \App\Support\Access::abilities($user),
+            'abilities' => Access::abilities($user),
             'settings' => \App\Models\Setting::current(),
             'companies' => $companies,
             'company' => $current,
+            'scope' => CompanyContext::isAll() ? 'all' : 'company',
+            'unassigned' => $platform
+                ? User::query()->whereDoesntHave('companies')->orderBy('name')->get(['id', 'name', 'email', 'role', 'job_title', 'is_active'])
+                : [],
         ];
 
         if ($token) {

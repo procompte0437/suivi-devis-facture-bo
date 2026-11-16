@@ -23,6 +23,11 @@ class Project extends Model
         ];
     }
 
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
+    }
+
     public function client(): BelongsTo
     {
         return $this->belongsTo(Client::class);

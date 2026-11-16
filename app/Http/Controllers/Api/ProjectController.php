@@ -13,7 +13,7 @@ class ProjectController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Project::query()->with('client:id,company', 'manager:id,name');
+        $query = Project::query()->with('client:id,company', 'manager:id,name', 'company:id,name');
 
         $term = trim((string) $request->query('q', ''));
         if ($term !== '') {
@@ -130,7 +130,12 @@ class ProjectController extends Controller
             ]);
         });
 
-        ActivityLogger::log($request->user(), 'projet.avancement', $project, 'Projet '.$project->name.' : avancement à '.$data['progress'].' %.');
+        $reason = trim((string) ($data['comment'] ?? ''));
+        $text = 'Projet '.$project->name.' : avancement à '.$data['progress'].' %, statut '.$data['status'].'.';
+        if ($reason !== '') {
+            $text .= ' Motif : '.$reason;
+        }
+        ActivityLogger::log($request->user(), 'projet.avancement', $project, mb_substr($text, 0, 240));
 
         return $this->show($project->fresh());
     }

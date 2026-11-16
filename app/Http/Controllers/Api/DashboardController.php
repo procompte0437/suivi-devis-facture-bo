@@ -8,6 +8,8 @@ use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\Project;
 use App\Models\Quote;
+use App\Models\User;
+use App\Support\CompanyContext;
 
 class DashboardController extends Controller
 {
@@ -20,7 +22,11 @@ class DashboardController extends Controller
 
         $billed = $this->billedBetween($start, $end);
         $previous = $this->billedBetween($prevStart, $prevEnd);
-        $collected = (float) Payment::query()->whereBetween('paid_at', [$start, $end])->sum('amount');
+        $payments = Payment::query()->whereBetween('paid_at', [$start, $end]);
+        if (! CompanyContext::isAll()) {
+            $payments->whereHas('invoice');
+        }
+        $collected = (float) $payments->sum('amount');
         $openQuotes = Quote::query()->whereIn('status', ['brouillon', 'envoye'])->get();
         $openAmount = $openQuotes->sum(fn (Quote $quote) => $quote->display_status === 'expire' ? 0 : (float) $quote->total);
         $openCount = $openQuotes->filter(fn (Quote $quote) => $quote->display_status !== 'expire')->count();
@@ -132,8 +138,20 @@ class DashboardController extends Controller
                 ->limit(6)
                 ->get(),
             'projects' => $activeProjects->sortByDesc('progress')->take(5)->values(),
-            'activity' => Activity::query()->with('user:id,name')->latest()->limit(7)->get(),
+            'activity' => $this->activity()->limit(7)->get(),
         ]);
+    }
+
+    private function activity()
+    {
+        $query = Activity::query()->with('user:id,name')->where('action', 'projet.avancement')->latest();
+
+        if (! CompanyContext::isAll() && ($companyId = CompanyContext::id())) {
+            $ids = User::query()->whereHas('companies', fn ($company) => $company->where('companies.id', $companyId))->pluck('id');
+            $query->whereIn('user_id', $ids);
+        }
+
+        return $query;
     }
 
     private function billedBetween(string $start, string $end): float

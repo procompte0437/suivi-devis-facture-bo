@@ -4,12 +4,18 @@ namespace App\Models\Concerns;
 
 use App\Support\CompanyContext;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Validation\ValidationException;
 
 trait BelongsToCompany
 {
     public static function bootBelongsToCompany(): void
     {
         static::addGlobalScope('company', function (Builder $builder) {
+            if (CompanyContext::isAll()) {
+                return;
+            }
+
             if (CompanyContext::isEmpty()) {
                 $builder->whereRaw('1 = 0');
 
@@ -25,6 +31,18 @@ trait BelongsToCompany
             if (! $model->company_id && $id = CompanyContext::id()) {
                 $model->company_id = $id;
             }
+
+            if (! $model->company_id && CompanyContext::isAll()) {
+                throw ValidationException::withMessages([
+                    'company' => 'Choisissez une entreprise dans le menu avant d’enregistrer.',
+                ]);
+            }
         });
+    }
+
+    /** Entreprise propriétaire de la pièce. */
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Company::class);
     }
 }

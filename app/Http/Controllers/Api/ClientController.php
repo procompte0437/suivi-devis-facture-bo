@@ -100,14 +100,17 @@ class ClientController extends Controller
         ]);
 
         if ($data['kind'] === 'entreprise') {
-            $societe = ReferentielItem::query()->where('kind', 'societe')->whereKey($data['societe_id'] ?? 0)->first();
-            if (! $societe) {
+            // Le nom de l’entreprise cliente se saisit directement dans la fiche client.
+            // Un ancien client rattaché à une société du référentiel garde ce lien.
+            $societe = empty($data['societe_id']) ? null
+                : ReferentielItem::query()->where('kind', 'societe')->whereKey($data['societe_id'])->first();
+            $data['company'] = trim((string) ($data['company'] ?? '')) ?: $societe?->label;
+            if (! $data['company']) {
                 throw ValidationException::withMessages([
-                    'societe_id' => 'Choisissez une société configurée dans le référentiel.',
+                    'company' => 'Indiquez le nom de l’entreprise cliente.',
                 ]);
             }
-            $data['company'] = $societe->label;
-            $data['societe_id'] = $societe->id;
+            $data['societe_id'] = $societe && $societe->label === $data['company'] ? $societe->id : null;
         } else {
             $data['company'] = $data['contact_name'];
             $data['societe_id'] = null;
